@@ -5,6 +5,8 @@
 
 This document provides a technical catalog of Samsung's proprietary memory management system properties based strictly on the source code analysis of `ActivityManagerService`, `KillPolicyManager`, `ChimeraManagerService`, `DynamicHiddenApp`, and `BgAppPropManager`.
 
+**Default Values Note:** The default values listed below represent the hardcoded fallback values found within the `SystemProperties.get()` and `BgAppPropManager.getSlmkProperty()` calls in the Java framework. **Be aware that many of these values are already overridden by device-specific `.prop` files (like `build.prop` or `vendor.prop`) depending on the specific Galaxy model and RAM variant.**
+
 **Property Hierarchy:**
 The `BgAppPropManager` dynamically reads properties based on device RAM. Properties prefixed with `ro.slmk.` support RAM-based overrides. The threshold triggers for these overrides are defined by the following properties:
 *   `ro.slmk.dha_2ndprop_thMB`: RAM threshold (in MB) to trigger `2nd` tier properties.
@@ -24,11 +26,11 @@ Chimera (`ChimeraManagerService`) is a predictive background process manager. It
 
 | Property | Description |
 | :--- | :--- |
-| `persist.config.chimera.enable` | Master toggle for Chimera. Determines if `ChimeraManagerService` is active.<br><br>Values include `forcestop`, `true`, `true,CC`, or `true,CA`. Note: `false` or empty is overridden to `true` by initialization logic.<br><br>Setting `true,CC` forces the system to use `ConservativePolicyHandler`, while `true,CA` explicitly routes the service to use `AggressivePolicyHandler` (which heavily reduces app launch kill intervals and aggressively drops cached apps). |
-| `ro.slmk.chimera.quickreclaim_enable` | Toggles Chimera's quick memory reclaim feature. When enabled, Chimera monitors app launch intents (via `SystemEventListener`); if a user launches a high-memory application, it instantly reclaims memory rather than waiting for LMKD to react to pressure. |
-| `ro.slmk.chimera.quickreclaim_big_game_enable` | Toggles preemptive memory reclaim tailored for heavy game applications. Checked in `PolicyHandler.java` when evaluating apps listed in the internal `systemRepository.mBigGameApps` list. |
-| `ro.slmk.use_bg_keeping_policy` | Toggles "Conservative Mode" for Chimera. When enabled, it reduces the aggressiveness of background application termination. **Note:** Static analysis reveals this property is explicitly ignored and overridden to `false` if the device's CSC region is China (`CHINA_COUNTRY_CODE`), likely due to differing regional app behaviors. |
-| `ro.slmk.psitracker_enable` | Toggles the PSI (Pressure Stall Information) tracker thread used by Chimera to monitor kernel `/proc/pressure/` metrics. |
+| `persist.config.chimera.enable` | Master toggle for Chimera. Determines if `ChimeraManagerService` is active.<br><br>Values include `forcestop`, `true`, `true,CC`, or `true,CA`. Note: `false` or empty is overridden to `true` by initialization logic.<br><br>Setting `true,CC` forces the system to use `ConservativePolicyHandler`, while `true,CA` explicitly routes the service to use `AggressivePolicyHandler` (which heavily reduces app launch kill intervals and aggressively drops cached apps). (Default: `true`) |
+| `ro.slmk.chimera.quickreclaim_enable` | Toggles Chimera's quick memory reclaim feature. When enabled, Chimera monitors app launch intents (via `SystemEventListener`); if a user launches a high-memory application, it instantly reclaims memory rather than waiting for LMKD to react to pressure. (Default: `false`) |
+| `ro.slmk.chimera.quickreclaim_big_game_enable` | Toggles preemptive memory reclaim tailored for heavy game applications. Checked in `PolicyHandler.java` when evaluating apps listed in the internal `systemRepository.mBigGameApps` list. (Default: `false`) |
+| `ro.slmk.use_bg_keeping_policy` | Toggles "Conservative Mode" for Chimera. When enabled, it reduces the aggressiveness of background application termination. **Note:** Static analysis reveals this property is explicitly ignored and overridden to `false` if the device's CSC region is China (`CHINA_COUNTRY_CODE`), likely due to differing regional app behaviors. (Default: `false`) |
+| `ro.slmk.psitracker_enable` | Toggles the PSI (Pressure Stall Information) tracker thread used by Chimera to monitor kernel `/proc/pressure/` metrics. (Default: `true`) |
 
 ---
 
@@ -39,13 +41,13 @@ KPM (`KillPolicyManager`) is a modification integrated directly into Android's `
 
 | Property | Description |
 | :--- | :--- |
-| `ro.slmk.kpm_policy_enable` | Master toggle for the KPM policy execution logic. When set to `false`, it prevents KPM from overriding Android's standard Low Memory Killer during high memory pressure states. |
-| `persist.sys.kpm_onoff` | Master toggle for `sPmmEnabledBySpcm` (Personalized Memory Manager) and the KPM core loop. Disabling this effectively neutralizes Samsung's panic-kill background sweeps. |
-| `ro.slmk.kpm_boot_enable` | Determines whether KPM starts enforcing its policies immediately during the boot sequence, bypassing the standard grace period given to applications during system startup. |
-| `persist.sys.kpm_cri_mem_detect` | Toggles the `MemoryFloodDetector`.<br><br>When enabled, KPM actively monitors the rate of RAM consumption by the foreground app. If a sudden, massive memory allocation occurs (a "flood"), KPM bypasses normal ADJ rules to rapidly terminate background apps and stabilize the system. |
-| `ro.slmk.kpm_use_cri_pkg_ratio` | Maps to `MEMORY_CRITICAL_LOW_USE_PACKAGE_RATIO`.<br><br>When enabled, KPM calculates the percentage of Hot/Warm/Cold apps to dynamically decide how many packages to terminate during critical memory states, rather than using a hardcoded static kill count. |
-| `ro.slmk.kpm_policy_trigger` | Defines the memory pressure threshold percentage (`sPolicyTrigger`) required to shift KPM into a higher pressure state. Defaults to `50`. |
-| `ro.slmk.kpm_warm_up_cycles` | Sets the number of app launch cycles the system waits after boot before KPM becomes fully active and begins profiling. |
+| `ro.slmk.kpm_policy_enable` | Master toggle for the KPM policy execution logic. When set to `false`, it prevents KPM from overriding Android's standard Low Memory Killer during high memory pressure states. (Default: `true`) |
+| `persist.sys.kpm_onoff` | Master toggle for `sPmmEnabledBySpcm` (Personalized Memory Manager) and the KPM core loop. Disabling this effectively neutralizes Samsung's panic-kill background sweeps. (Default: `true`) |
+| `ro.slmk.kpm_boot_enable` | Determines whether KPM starts enforcing its policies immediately during the boot sequence, bypassing the standard grace period given to applications during system startup. (Default: `true`) |
+| `persist.sys.kpm_cri_mem_detect` | Toggles the `MemoryFloodDetector`.<br><br>When enabled, KPM actively monitors the rate of RAM consumption by the foreground app. If a sudden, massive memory allocation occurs (a "flood"), KPM bypasses normal ADJ rules to rapidly terminate background apps and stabilize the system. (Default: `true`) |
+| `ro.slmk.kpm_use_cri_pkg_ratio` | Maps to `MEMORY_CRITICAL_LOW_USE_PACKAGE_RATIO`.<br><br>When enabled, KPM calculates the percentage of Hot/Warm/Cold apps to dynamically decide how many packages to terminate during critical memory states, rather than using a hardcoded static kill count. (Default: `true`) |
+| `ro.slmk.kpm_policy_trigger` | Defines the memory pressure threshold percentage (`sPolicyTrigger`) required to shift KPM into a higher pressure state. (Default: `50`) |
+| `ro.slmk.kpm_warm_up_cycles` | Sets the number of app launch cycles the system waits after boot before KPM becomes fully active and begins profiling. (Default: `3`) |
 
 ---
 
@@ -57,14 +59,14 @@ DHA (`DynamicHiddenApp`) interacts with the standard Android Low Memory Killer D
 ### Scale, Priority, and Swap Properties
 | Property | Description |
 | :--- | :--- |
-| `ro.slmk.dha_lmk_scale` | Sets the multiplier used to scale standard Android `lmkd` thresholds (`mLMKScale`). (Supports `2nd` and `3rd` overrides). A value of `-1` forces standard AOSP calculation. |
-| `ro.slmk.enable_picked_adj` | Maps to `PICKED_ADJ_ENABLE`.<br><br>When true, DHA flags specific background apps that haven't been used recently as "picked". It artificially inflates their OOM_ADJ score over time, guaranteeing they will be prioritized for termination by LMKD sooner than a standard AOSP LRU model would. |
-| `ro.slmk.enable_upgrade_criadj`| Maps to `LMK_ENABLE_UPGRADE_CRIADJ`.<br><br>When enabled, LMKD allows the system to explicitly upgrade the ADJ scores of cached/empty apps during `CRITICAL` memory states, ensuring they rapidly cross the `minfree` kill threshold. |
-| `ro.slmk.reentry_mode_enable` | Toggles "re-entry mode". When enabled, LMKD can terminate multiple apps in a single execution pass without pausing to observe if memory pressure has stabilized. |
-| `ro.slmk.kill_heaviest_task` | Toggles whether the system defaults to terminating the app consuming the most memory when under pressure, completely overriding standard LRU (Least Recently Used) behavior. |
-| `ro.slmk.cleanup_webview_enable`| Maps to `CLEANUP_WEBVIEW_ENABLE`.<br><br>When enabled, DHA checks apps with the `SANDBOX` exception flag. If the app's ADJ score exceeds `WEBVIEW_ADJ_THRESHOLD`, isolated WebView sandbox processes are terminated in the background to free memory. |
-| `ro.slmk.bora_policy_enable` | Toggles the "BORA" sub-policy.<br><br>When enabled, the system tracks the most recently used cached apps in a dedicated list (`recentActivityProcessList`) to protect them from aggressive termination by assigning them a special ADJ score (`BORA_APP_ADJ = 350`). |
-| `ro.slmk.bora_cached_num` | Defines the maximum number of recent background apps protected by the BORA policy (default is usually `3`). |
+| `ro.slmk.dha_lmk_scale` | Sets the multiplier used to scale standard Android `lmkd` thresholds (`mLMKScale`). (Supports `2nd` and `3rd` overrides). A value of `-1` forces standard AOSP calculation. (Default: `-1`) |
+| `ro.slmk.enable_picked_adj` | Maps to `PICKED_ADJ_ENABLE`.<br><br>When true, DHA flags specific background apps that haven't been used recently as "picked". It artificially inflates their OOM_ADJ score over time, guaranteeing they will be prioritized for termination by LMKD sooner than a standard AOSP LRU model would. (Default: `true`) |
+| `ro.slmk.enable_upgrade_criadj`| Maps to `LMK_ENABLE_UPGRADE_CRIADJ`.<br><br>When enabled, LMKD allows the system to explicitly upgrade the ADJ scores of cached/empty apps during `CRITICAL` memory states, ensuring they rapidly cross the `minfree` kill threshold. (Default: `false`) |
+| `ro.slmk.reentry_mode_enable` | Toggles "re-entry mode". When enabled, LMKD can terminate multiple apps in a single execution pass without pausing to observe if memory pressure has stabilized. (Default: `true`) |
+| `ro.slmk.kill_heaviest_task` | Toggles whether the system defaults to terminating the app consuming the most memory when under pressure, completely overriding standard LRU (Least Recently Used) behavior. (Default: `true`) |
+| `ro.slmk.cleanup_webview_enable`| Maps to `CLEANUP_WEBVIEW_ENABLE`.<br><br>When enabled, DHA checks apps with the `SANDBOX` exception flag. If the app's ADJ score exceeds `WEBVIEW_ADJ_THRESHOLD`, isolated WebView sandbox processes are terminated in the background to free memory. (Default: `false`) |
+| `ro.slmk.bora_policy_enable` | Toggles the "BORA" sub-policy.<br><br>When enabled, the system tracks the most recently used cached apps in a dedicated list (`recentActivityProcessList`) to protect them from aggressive termination by assigning them a special ADJ score (`BORA_APP_ADJ = 350`). (Default: `false`) |
+| `ro.slmk.bora_cached_num` | Defines the maximum number of recent background apps protected by the BORA policy. (Default: `3`) |
 | `ro.slmk.swap_free_low_percentage`| Sets the percentage threshold for low swap space that triggers native terminations. |
 
 ### Cached/Empty Process Limits
@@ -72,17 +74,17 @@ DHA (`DynamicHiddenApp`) interacts with the standard Android Low Memory Killer D
 
 | Property | Description |
 | :--- | :--- |
-| `ro.slmk.dha_cached_max` | The absolute maximum number of cached background processes allowed. |
-| `ro.slmk.dha_cached_min` | The minimum number of cached background processes the system attempts to maintain. |
-| `ro.slmk.dha_empty_max` | The absolute maximum number of empty processes allowed in the background. |
-| `ro.slmk.dha_empty_min` | The minimum number of empty processes the system attempts to maintain. |
+| `ro.slmk.dha_cached_max` | The absolute maximum number of cached background processes allowed. (Default: `16`) |
+| `ro.slmk.dha_cached_min` | The minimum number of cached background processes the system attempts to maintain. (Default: `4`) |
+| `ro.slmk.dha_empty_max` | The absolute maximum number of empty processes allowed in the background. (Default: `24`) |
+| `ro.slmk.dha_empty_min` | The minimum number of empty processes the system attempts to maintain. (Default: `8`) |
 
 ### Free Memory Limits & Tuning
 | Property | Description |
 | :--- | :--- |
 | `ro.slmk.freelimit_val` | Maps to `LMK_FREELIMIT_VAL`. Sets the numeric limit for free memory targets. Supports `2nd` and `3rd` overrides. |
-| `ro.slmk.bEFKb_enable` | Maps to `BOOTING_EFK_BOOST_ENABLE`.<br><br>Toggles Extra Free KBytes (EFK) buffer limits during boot to give system apps more memory headroom during initialization. |
-| `ro.slmk.dec_EFK_enable` | Maps to `APP_EFK_DECREASE_BOOST_ENABLE`.<br><br>Toggles the dynamic decrease of Extra Free KBytes during runtime, allowing the system to shrink its reserved free memory pool dynamically when foreground apps request more RAM. |
+| `ro.slmk.bEFKb_enable` | Maps to `BOOTING_EFK_BOOST_ENABLE`.<br><br>Toggles Extra Free KBytes (EFK) buffer limits during boot to give system apps more memory headroom during initialization. (Default: `false`) |
+| `ro.slmk.dec_EFK_enable` | Maps to `APP_EFK_DECREASE_BOOST_ENABLE`.<br><br>Toggles the dynamic decrease of Extra Free KBytes during runtime, allowing the system to shrink its reserved free memory pool dynamically when foreground apps request more RAM. (Default: `false`) |
 
 ---
 
@@ -93,20 +95,20 @@ To maintain core system functionality for Samsung-specific frameworks, `BGProtec
 
 | Property | Description |
 | :--- | :--- |
-| `ro.slmk.dha_pallowlist_enable` | Toggles the internal DHA allowlist to keep specific empty/cached processes active. Used in conjunction with `dha_pwhl_key` to map whitelisted applications. |
-| `ro.slmk.dha_knox_plist_enable` | Toggles specific memory protections for Knox-containerized apps, preventing enterprise work profile applications from being killed during idle sweeps. |
-| `ro.slmk.ams_knoxexpt_enable` | Toggles whether ActivityManagerService strictly treats Knox processes as exceptions to standard termination rules. |
-| `ro.slmk.provider_upgrade_adj` | Toggles the artificial upgrade of ADJ scores for Content Providers (e.g., `android.process.media`).<br><br>By inflating their priority, it protects critical data providers from being terminated as generic background services. |
-| `ro.slmk.use_lowmem_keep_except` | Maps to `LMK_LOW_MEM_KEEP_ENABLE`. Toggles logic to retain exception-listed applications active even during critical low-memory states. |
-| `ro.slmk.beks_enable` | Maps to `BOOTING_EMPTY_KILL_SKIP_ENABLE`.<br><br>When enabled, the system explicitly skips the termination of empty application processes while the `BOOT_COMPLETED` broadcast is still processing, preventing boot loops or excessive CPU thrashing during startup. |
-| `ro.slmk.neverkill_sqetool_enable`| Toggles protections that ensure whitelisted diagnostic and SQE (Software Quality Engineering) test tools used by Samsung engineers are not terminated during automated testing. |
+| `ro.slmk.dha_pallowlist_enable` | Toggles the internal DHA allowlist to keep specific empty/cached processes active. Used in conjunction with `dha_pwhl_key` to map whitelisted applications. (Default: `1`) |
+| `ro.slmk.dha_knox_plist_enable` | Toggles specific memory protections for Knox-containerized apps, preventing enterprise work profile applications from being killed during idle sweeps. (Default: `0`) |
+| `ro.slmk.ams_knoxexpt_enable` | Toggles whether ActivityManagerService strictly treats Knox processes as exceptions to standard termination rules. (Default: `true`) |
+| `ro.slmk.provider_upgrade_adj` | Toggles the artificial upgrade of ADJ scores for Content Providers (e.g., `android.process.media`).<br><br>By inflating their priority, it protects critical data providers from being terminated as generic background services. (Default: `false`) |
+| `ro.slmk.use_lowmem_keep_except` | Maps to `LMK_LOW_MEM_KEEP_ENABLE`. Toggles logic to retain exception-listed applications active even during critical low-memory states. (Default: `true`) |
+| `ro.slmk.beks_enable` | Maps to `BOOTING_EMPTY_KILL_SKIP_ENABLE`.<br><br>When enabled, the system explicitly skips the termination of empty application processes while the `BOOT_COMPLETED` broadcast is still processing, preventing boot loops or excessive CPU thrashing during startup. (Default: `false`) |
+| `ro.slmk.neverkill_sqetool_enable`| Toggles protections that ensure whitelisted diagnostic and SQE (Software Quality Engineering) test tools used by Samsung engineers are not terminated during automated testing. (Default: `true`) |
 
 ### Camera Specific Exceptions
 Samsung explicitly protects camera functionality via dedicated property tuning:
 
 | Property | Description |
 | :--- | :--- |
-| `ro.slmk.cam_dha_ver` | Maps to `CAMERA_DHA_VER`. Defines the specific version iteration of DHA logic to invoke during Camera operations. |
+| `ro.slmk.cam_dha_ver` | Maps to `CAMERA_DHA_VER`. Defines the specific version iteration of DHA logic to invoke during Camera operations. (Default: `0`) |
 
 ---
 
