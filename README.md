@@ -65,7 +65,6 @@ DHA (`DynamicHiddenApp`) interacts with the standard Android Low Memory Killer D
 | `ro.slmk.cleanup_webview_enable`| Maps to `CLEANUP_WEBVIEW_ENABLE`. When enabled, DHA checks apps with the `SANDBOX` exception flag. If the app's ADJ score exceeds `WEBVIEW_ADJ_THRESHOLD`, isolated WebView sandbox processes are terminated in the background to free memory. |
 | `ro.slmk.bora_policy_enable` | Toggles the "BORA" sub-policy. When enabled, the system tracks the most recently used cached apps in a dedicated list (`recentActivityProcessList`) to protect them from aggressive termination by assigning them a special ADJ score (`BORA_APP_ADJ = 350`). |
 | `ro.slmk.bora_cached_num` | Defines the maximum number of recent background apps protected by the BORA policy (default is usually `3`). |
-| `ro.slmk.base_swaptotal` | Sets the baseline expected SWAP (zRAM) allocation in MB. |
 | `ro.slmk.swap_free_low_percentage`| Sets the percentage threshold for low swap space that triggers native terminations. |
 
 ### Cached/Empty Process Limits
