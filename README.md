@@ -7,7 +7,7 @@
 >
 > While every effort was made to verify property behaviors via direct source code tracing, the conclusions drawn may contain inaccuracies, misinterpretations of legacy code paths, or missing context. Use this information at your own risk.
 
-This document provides a technical catalog of Samsung's proprietary memory management system properties based strictly on the source code analysis of `ActivityManagerService`, `KillPolicyManager`, `ChimeraManagerService`, `DynamicHiddenApp`, and `BgAppPropManager`.
+This document provides a technical catalog of Samsung's proprietary memory management system properties. It is based on a combination of static source code analysis (covering `ActivityManagerService`, `KillPolicyManager`, `ChimeraManagerService`, `DynamicHiddenApp`, and `BgAppPropManager`) and empirical verification of native `lmkd` behaviors via system logs.
 
 **Default Values Note:** The default values listed below represent the hardcoded fallback values found within the `SystemProperties.get()` and `BgAppPropManager.getSlmkProperty()` calls in the Java framework. **Be aware that many of these values are already overridden by device-specific `.prop` files (like `build.prop` or `vendor.prop`) depending on the specific Galaxy model and RAM variant.**
 
@@ -139,3 +139,15 @@ These are internal reference IDs used by `BGProtectManager` to map specific proc
 *   **`dha_pwhl_key`:** Standard whitelist key. Commonly set to `512`.
 *   **`dha_pwhl_key_knox`:** Knox-specific whitelist key. Commonly set to `1539`.
 *   **`plg_key` (Provider Lifeguard):** Identifies the policy group for content providers. Commonly set to `3` or `79`.
+
+---
+
+## 6. Native lmkd Properties
+
+These properties are primarily read and processed directly by Samsung's native `lmkd` binary. Unlike `ro.slmk.*` properties parsed in Java, these govern the low-level trigger conditions in the memory management daemon itself.
+
+| Property | Description |
+| :--- | :--- |
+| `ro.slmk.base_swaptotal` | Sets a hard baseline for expected swap (zRAM) allocation in MB. <br><br>The native `lmkd` utilizes this property to enforce a swap-exhaustion kill policy. If available free swap space falls below **25%** of this value (effectively meaning swap usage has exceeded 75%), `lmkd` will initiate process reclamation to prevent a total system stall. <br><br>**Trigger Signature:** `reason: low watermark is breached and swap is low (1843492kB < 1899088kB)` |
+| `sys.lmk.slmk_16up_swap_used_threshold_kb` | An internally computed swap usage cap derived from `ro.slmk.base_swaptotal`. **Note:** This value is non-overridable; even if modified, `lmkd` will ignore the override and continue following the threshold calculated from the base swaptotal. |
+| `sys.lmk.slmk_16up_swap_free_low_percentage` | An internally computed low swap free percentage derived from `ro.slmk.base_swaptotal`. Like its counterpart, this is effectively read-only and governed by the base swaptotal. |
