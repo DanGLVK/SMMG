@@ -186,7 +186,7 @@ Samsung-proprietary aggressive kill modes that temporarily lower kill thresholds
 ### Samsung Swap Threshold Extensions
 | Property | Description |
 | :--- | :--- |
-| `ro.slmk.base_swaptotal` | Sets a hard baseline for expected swap (zRAM) allocation in MB. <br><br>Used by the `SwapFreeLow::alter()` function to compute swap-exhaustion kill thresholds. If set, the value is left-shifted by 10 bits (multiplied by 1024) and used directly as the swap total baseline. If set to `0`, lmkd falls back to dynamic calculation based on total RAM and RAM Plus size. <br><br>**Trigger Signature:** `reason: low watermark is breached and swap is low (1843492kB < 1899088kB)` (Default: `0`) |
+| `ro.slmk.base_swaptotal` | Sets a hard baseline for the maximum allowed swap (zRAM) usage in MB. <br><br>The native `lmkd` utilizes this to enforce a strict usage cap. If usage exceeds **75%** of this value (defaulting to the reciprocal of the free percentage), a kill is triggered. Crucially, this cap is absolute: if `base_swaptotal` is set to 4GB, `lmkd` will trigger kills at 3GB usage even if the actual zRAM size is 8GB. <br><br>**Trigger Signature:** `reason: low watermark is breached and swap is low (1843492kB < 1899088kB)` (Default: `0`) |
 
 ### Samsung Miscellaneous Native Properties
 | Property | Description |
