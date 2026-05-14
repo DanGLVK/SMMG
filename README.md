@@ -9,6 +9,7 @@
 
 This document provides a technical catalog of Samsung's proprietary memory management system properties. It is based on a combination of static source code analysis (covering `ActivityManagerService`, `KillPolicyManager`, `ChimeraManagerService`, `DynamicHiddenApp`, and `BgAppPropManager`) and empirical verification of native `lmkd` behaviors via system logs.
 
+
 **Default Values Note:** The default values listed below represent the hardcoded fallback values found within the `SystemProperties.get()` and `BgAppPropManager.getSlmkProperty()` calls in the Java framework. **Be aware that many of these values are already overridden by device-specific `.prop` files (like `build.prop` or `vendor.prop`) depending on the specific Galaxy model and RAM variant.**
 
 **Property Hierarchy:**
@@ -145,6 +146,9 @@ These are internal reference IDs used by `BGProtectManager` to map specific proc
 ## 6. Native lmkd Properties
 
 These properties are primarily read and processed directly by Samsung's native `lmkd` binary. Unlike `ro.slmk.*` properties parsed in Java, these govern the low-level trigger conditions in the memory management daemon itself.
+
+> [!NOTE]
+> The discovery and functional verification of the `ro.slmk.base_swaptotal` 75% swap-exhaustion policy were made through empirical analysis of system logs, not by AI static analysis.
 
 | Property | Description |
 | :--- | :--- |
